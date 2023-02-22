@@ -5,7 +5,10 @@ cd C:\Kafka\
 .\bin\windows\zookeeper-server-start.bat .\config\zookeeper.properties
 
 # Segundo Terminar
-.\bin\windows\kafka-server-start.bat .\config\server.properties
+.\bin\windows\kafka-server-start.bat .\config\server1.properties
+
+# Terceiro Terminar
+.\bin\windows\kafka-server-start.bat .\config\server2.properties
 
 # Descrever Topicos
 .\bin\windows\kafka-topics.bat --bootstrap-server localhost:9092 --describe
@@ -23,3 +26,6 @@ cd C:\Kafka\
 ## No Arquivo \config\zookeeper.properties, alterar propriedade dataDir=/tmp/zookeeper para dataDir=Seu/Diretorio/zookeeper
 
 ## No Arquivo \config\server.properties, alterar propriedade log.dirs=/tmp/kafka-logs para log.dirs=Seu/Diretorio/kafka-logs
+
+# Rodar um Cluster de Kafka 
+.\scripts\New-BrockerKafka.ps1 -NumeroNos 5
