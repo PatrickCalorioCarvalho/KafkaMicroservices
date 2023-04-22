@@ -3,20 +3,20 @@ package org.example.eCommerce;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 public class EmailService {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws ExecutionException, InterruptedException {
         var emailService = new EmailService();
         try(var service = new KafkaService(EmailService.class.getSimpleName(),
-                "ECOMMERCER_SEND_EMAIL",
+                "ECOMMERCE_SEND_EMAIL",
                 emailService::parse,
-                String.class,
                 Map.of())) {
             service.run();
         }
     }
 
-    private void parse(ConsumerRecord<String,String> record) {
+    private void parse(ConsumerRecord<String,Message<String>> record) {
         System.out.println("-------------------------------------------------");
         System.out.println("Send Email");
         System.out.println(record.key());

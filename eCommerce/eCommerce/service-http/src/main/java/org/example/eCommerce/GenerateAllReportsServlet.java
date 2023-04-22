@@ -1,44 +1,34 @@
 package org.example.eCommerce;
 
-import jakarta.servlet.Servlet;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.eclipse.jetty.servlet.Source;
 
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
-public class NewOrderServlet extends HttpServlet {
-    private final KafkaDispatcher<Order> orderDispatcher = new KafkaDispatcher<Order>();
-    private final KafkaDispatcher<String> emailDispatcher = new KafkaDispatcher<String>();
+public class GenerateAllReportsServlet extends HttpServlet {
+    private final KafkaDispatcher<String> batchDispatcher = new KafkaDispatcher<>();
 
     @Override
     public void destroy() {
         super.destroy();
-        orderDispatcher.close();
-        emailDispatcher.close();
+        batchDispatcher.close();
     }
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         try {
-            var email =  req.getParameter("email");
-            var orderId= UUID.randomUUID().toString();
-            var amount = new BigDecimal(req.getParameter("amount"));
+            batchDispatcher.send("ECOMMERCE_SEND_MESSAGE_TO_ALL_USERS","ECOMMERCE_USER_GENERATE_READING_REPORT",
+                    new CorrelationId(GenerateAllReportsServlet.class.getSimpleName()),
+                    "ECOMMERCE_USER_GENERATE_READING_REPORT");
 
-            var order = new Order(orderId,amount,email);
-            orderDispatcher.send("ECOMMERCER_NEW_ORDER",email,order);
-
-            var emailCode = "Thank you for your order! We are processing your order!";
-            emailDispatcher.send("ECOMMERCER_SEND_EMAIL",email,emailCode);
-
-            System.out.println("Novo Pedido Processado");
+            System.out.println("Send generate report to all user");
             resp.setStatus(HttpServletResponse.SC_OK);
-            resp.getWriter().println("Novo Pedido Processado");
+            resp.getWriter().println("Gerando Relatorio Para todos os Usuario");
 
         } catch (ExecutionException e) {
             throw new ServletException(e);

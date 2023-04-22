@@ -1,27 +1,31 @@
 package org.example.eCommerce;
 
 import com.google.gson.Gson;
-import org.apache.kafka.clients.producer.Callback;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.*;
 import org.apache.kafka.common.serialization.StringSerializer;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 class KafkaDispatcher<T> implements Closeable {
 
-    private final KafkaProducer<String, T> producer;
+    private final KafkaProducer<String, Message<T>> producer;
 
     KafkaDispatcher() {
         this.producer = new KafkaProducer<>(properties());
     }
 
-    void send(String topic, String key, T value) throws ExecutionException, InterruptedException {
-        var record = new ProducerRecord<>(topic,key,value);
+    void send(String topic, String key,CorrelationId id, T payload) throws ExecutionException, InterruptedException {
+        java.util.concurrent.Future<org.apache.kafka.clients.producer.RecordMetadata> future = sendAsync(topic, key, id, payload);
+        future.get();
+    }
+
+    Future<RecordMetadata> sendAsync(String topic, String key, CorrelationId id, T payload) {
+        var value = new Message<>(id, payload);
+        var record = new ProducerRecord<>(topic, key,value);
         Callback callback = (data, ex) -> {
             if (ex != null) {
                 ex.printStackTrace();
@@ -29,7 +33,8 @@ class KafkaDispatcher<T> implements Closeable {
             }
             System.out.println("Success when sending :: " + data.topic() + ":: " + data.partition() + "/" + data.offset() + "/" + data.partition());
         };
-        producer.send(record, callback).get();
+        var future = producer.send(record, callback);
+        return future;
     }
 
     private static Properties properties() {
