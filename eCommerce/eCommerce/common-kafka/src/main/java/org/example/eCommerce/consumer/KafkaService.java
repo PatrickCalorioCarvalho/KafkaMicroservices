@@ -3,6 +3,8 @@ package org.example.eCommerce;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.example.eCommerce.dispatcher.GsonSerializer;
+import org.example.eCommerce.dispatcher.KafkaDispatcher;
 
 import java.io.Closeable;
 import java.time.Duration;
