@@ -1,8 +1,9 @@
-package org.example.eCommerce;
+package org.example.eCommerce.consumer;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.example.eCommerce.Message;
 import org.example.eCommerce.dispatcher.GsonSerializer;
 import org.example.eCommerce.dispatcher.KafkaDispatcher;
 
@@ -15,25 +16,25 @@ import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.regex.Pattern;
 
-class KafkaService<T> implements Closeable {
+public class KafkaService<T> implements Closeable {
     private final KafkaConsumer<String, Message<T>> consumer;
-    private final ConsumerFunction parse;
+    private final ConsumerFunction<T> parse;
 
-    KafkaService(String groupId, String topic, ConsumerFunction parse, Map<String,String> properties) {
+    public KafkaService(String groupId, String topic, ConsumerFunction<T> parse, Map<String,String> properties) {
         this(parse,groupId,properties);
         consumer.subscribe(Collections.singletonList(topic));
     }
-    KafkaService(String groupId, Pattern topic, ConsumerFunction parse, Map<String,String> properties) {
+    public KafkaService(String groupId, Pattern topic, ConsumerFunction<T> parse, Map<String,String> properties) {
         this(parse,groupId,properties);
         consumer.subscribe(topic);
     }
 
-    private KafkaService(ConsumerFunction parse, String groupId, Map<String, String> properties) {
+    private KafkaService(ConsumerFunction<T> parse, String groupId, Map<String, String> properties) {
         this.parse = parse;
         this.consumer = new KafkaConsumer<>(getProperties(groupId,properties));
     }
 
-    void run() throws ExecutionException, InterruptedException {
+    public void run() throws ExecutionException, InterruptedException {
         try (var deadLetter = new KafkaDispatcher<>()) {
             while (true){
                 var records = consumer.poll(Duration.ofMillis(100));
@@ -65,6 +66,7 @@ class KafkaService<T> implements Closeable {
         properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, groupId);
         properties.setProperty(ConsumerConfig.CLIENT_ID_CONFIG, UUID.randomUUID().toString());
         properties.setProperty(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "1");
+        properties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         properties.putAll(overrideProperties);
         return properties;
     }

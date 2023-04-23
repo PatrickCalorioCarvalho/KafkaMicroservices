@@ -14,4 +14,8 @@ public class Order {
         Amount = amount;
         Email = email;
     }
+
+    public String getOrderId() {
+        return OrderId;
+    }
 }

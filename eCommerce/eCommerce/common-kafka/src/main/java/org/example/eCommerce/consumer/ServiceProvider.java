@@ -1,10 +1,7 @@
-package org.example.eCommerce;
-
-import org.example.eCommerce.consumer.KafkaService;
+package org.example.eCommerce.consumer;
 
 import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 
 public class ServiceProvider<T> implements Callable<Void> {
     private final ServiceFactory<T> factory;
@@ -13,9 +10,9 @@ public class ServiceProvider<T> implements Callable<Void> {
         this.factory = factory;
     }
 
-    public Void call() throws ExecutionException, InterruptedException {
+    public Void call() throws Exception {
         var myService = factory.create();
-        try(var service = new KafkaService(myService.getConsumerGroup(),
+        try(var service = new KafkaService<>(myService.getConsumerGroup(),
                 myService.getTopic(),
                 myService::parse,
                 Map.of())) {

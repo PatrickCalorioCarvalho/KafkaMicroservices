@@ -1,26 +1,24 @@
 package org.example.eCommerce;
 
-import jakarta.servlet.Servlet;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.eclipse.jetty.servlet.Source;
+import org.example.eCommerce.dispatcher.KafkaDispatcher;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.sql.SQLException;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
 public class NewOrderServlet extends HttpServlet {
     private final KafkaDispatcher<Order> orderDispatcher = new KafkaDispatcher<Order>();
-    private final KafkaDispatcher<String> emailDispatcher = new KafkaDispatcher<String>();
 
     @Override
     public void destroy() {
         super.destroy();
         orderDispatcher.close();
-        emailDispatcher.close();
     }
 
     @Override
@@ -29,24 +27,31 @@ public class NewOrderServlet extends HttpServlet {
             var email =  req.getParameter("email");
             var orderId= UUID.randomUUID().toString();
             var amount = new BigDecimal(req.getParameter("amount"));
-
             var order = new Order(orderId,amount,email);
-            orderDispatcher.send("ECOMMERCE_NEW_ORDER",email,
-                    new CorrelationId(NewOrderServlet.class.getSimpleName()),
-                    order);
 
-            var emailCode = "Thank you for your order! We are processing your order!";
-            emailDispatcher.send("ECOMMERCE_SEND_EMAIL",email,
-                    new CorrelationId(NewOrderServlet.class.getSimpleName()),
-                    emailCode);
+            try(var database = new OrdersDatabase()){
+                if(database.saveNew(order))
+                {
+                    orderDispatcher.send("ECOMMERCE_NEW_ORDER",email,
+                            new CorrelationId(NewOrderServlet.class.getSimpleName()),
+                            order);
 
-            System.out.println("Novo Pedido Processado");
-            resp.setStatus(HttpServletResponse.SC_OK);
-            resp.getWriter().println("Novo Pedido Processado");
+                    System.out.println("Novo Pedido Processado");
+                    resp.setStatus(HttpServletResponse.SC_OK);
+                    resp.getWriter().println("Novo Pedido Processado");
+                }else
+                {
+                    System.out.println("Antigo Pedido Processado");
+                    resp.setStatus(HttpServletResponse.SC_OK);
+                    resp.getWriter().println("Antigo Pedido Processado");
+                }
+            }
 
-        } catch (ExecutionException e) {
-            throw new ServletException(e);
-        } catch (InterruptedException e) {
+
+
+
+
+        } catch (InterruptedException | SQLException | ExecutionException e) {
             throw new ServletException(e);
         }
     }

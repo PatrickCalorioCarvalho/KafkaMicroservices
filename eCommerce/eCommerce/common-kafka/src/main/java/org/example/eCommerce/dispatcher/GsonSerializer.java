@@ -1,8 +1,10 @@
-package org.example.eCommerce;
+package org.example.eCommerce.dispatcher;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.apache.kafka.common.serialization.Serializer;
+import org.example.eCommerce.Message;
+import org.example.eCommerce.MessageAdapter;
 
 import java.nio.charset.StandardCharsets;
 

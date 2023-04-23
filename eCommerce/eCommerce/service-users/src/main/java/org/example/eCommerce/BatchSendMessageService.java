@@ -1,6 +1,9 @@
 package org.example.eCommerce;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.example.eCommerce.consumer.KafkaService;
+import org.example.eCommerce.database.LocalDatabase;
+import org.example.eCommerce.dispatcher.KafkaDispatcher;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -11,12 +14,11 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 public class BatchSendMessageService {
-    private final Connection connection;
+    private final LocalDatabase database;
 
     BatchSendMessageService() throws SQLException {
-        String url = "jdbc:sqlite:target/users_database.db";
-        connection = DriverManager.getConnection(url);
-        connection.createStatement().execute("CREATE TABLE IF NOT EXISTS Users(" +
+        this.database = new LocalDatabase("users_database");
+        this.database.createIfNotExists("CREATE TABLE IF NOT EXISTS Users(" +
                 "uuid varchar(200) primary key," +
                 "email varchar(200))");
     }
@@ -38,6 +40,7 @@ public class BatchSendMessageService {
         var message = record.value();
         System.out.println("Topic: " + message.getPayload());
         for(User user : getAllUsers()){
+            System.out.println("Enviando para Usuario: " + user.getUuid());
             userKafkaDispatcher.sendAsync(message.getPayload(),user.getUuid(),
                     message.getId().continueWith(BatchSendMessageService.class.getSimpleName()),
                     user);
@@ -46,7 +49,7 @@ public class BatchSendMessageService {
     }
 
     private List<User> getAllUsers() throws SQLException {
-        var results = connection.prepareStatement("select uuid from Users ").executeQuery();
+        var results = this.database.query("select uuid from Users");
         List<User> users = new ArrayList<>();
         while(results.next())
         {
